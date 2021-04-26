@@ -112,7 +112,7 @@ GLint ShaderProgram::uniform(const std::string& name) {
         return it->second;
 }
 
-GLint ShaderProgram::attribute(const std::string& name) {
+GLint ShaderProgram::attribute(const std::string& name) const {
     GLint attrib = glGetAttribLocation(handle, name.c_str());
     if (attrib == GL_INVALID_OPERATION || attrib < 0)
         std::cout << "[Error] Attribute " << name << " doesn't exist in program" << "\n";
@@ -122,7 +122,7 @@ GLint ShaderProgram::attribute(const std::string& name) {
 
 void ShaderProgram::set_attribute(const std::string& name, GLint size,
                                   GLsizei stride,          GLuint offset,
-                                  GLboolean normalize,     GLenum type) {
+                                  GLboolean normalize,     GLenum type) const {
     GLint loc = attribute(name);
     glEnableVertexAttribArray(loc);
     glVertexAttribPointer(loc, size, type, normalize, stride,
@@ -131,20 +131,20 @@ void ShaderProgram::set_attribute(const std::string& name, GLint size,
 
 void ShaderProgram::set_attribute(const std::string& name,
                                   GLint size,    GLsizei stride,
-                                  GLuint offset, GLboolean normalize) {
+                                  GLuint offset, GLboolean normalize) const {
     set_attribute(name, size, stride, offset, normalize, GL_FLOAT);
 }
 
 void ShaderProgram::set_attribute(const std::string& name,
                                   GLint size,    GLsizei stride,
-                                  GLuint offset, GLenum type) {
+                                  GLuint offset, GLenum type) const {
     set_attribute(name, size, stride, offset, false, type);
 }
 
 void ShaderProgram::set_attribute(const std::string& name,
                                   GLint size,
                                   GLsizei stride,
-                                  GLuint offset) {
+                                  GLuint offset) const {
     set_attribute(name, size, stride, offset, false, GL_FLOAT);
 }
 

@@ -31,17 +31,17 @@ class ShaderProgram {
         ShaderProgram(std::initializer_list<Shader> shader_list);
 
         void use() const;
-        static void unuse();
+        void unuse();
 
         GLuint get_handle() const;
 
-        GLint attribute(const std::string& name);
+        GLint attribute(const std::string& name) const;
 
         // clang-format off
-        void set_attribute(const std::string& name, GLint size, GLsizei stride, GLuint offset, GLboolean normalize, GLenum type);
-        void set_attribute(const std::string& name, GLint size, GLsizei stride, GLuint offset, GLboolean normalize);
-        void set_attribute(const std::string& name, GLint size, GLsizei stride, GLuint offset, GLenum type);
-        void set_attribute(const std::string& name, GLint size, GLsizei stride, GLuint offset);
+        void set_attribute(const std::string& name, GLint size, GLsizei stride, GLuint offset, GLboolean normalize, GLenum type) const;
+        void set_attribute(const std::string& name, GLint size, GLsizei stride, GLuint offset, GLboolean normalize) const;
+        void set_attribute(const std::string& name, GLint size, GLsizei stride, GLuint offset, GLenum type) const;
+        void set_attribute(const std::string& name, GLint size, GLsizei stride, GLuint offset) const;
         // clang-format off
 
         GLint uniform(const std::string& name);

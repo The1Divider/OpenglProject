@@ -4,37 +4,52 @@
 #include <iostream>
 
 #include "Colour.hpp"
+#include "Application.hpp"
 
-Colour::Colour(float v1, float v2, float v3, float alpha, std::string tag)
-        : value({v1, v2, v3, alpha})
+Colour::Colour(float v1, float v2, float v3, float alpha, const char* tag)
+        : value({v1, v2, v3, alpha}), colour_tag(tag)
 {
     // check values
-    colour_tag = std::move(tag);
 }
-
-Colour::~Colour() = default;
 
 void Colour::to_hsv() {
     if (colour_tag == "rgb") {
         float r = value[0], g = value[1], b = value[2];
-        float c_max = std::max({r, g, b});
-        float c_min = std::min({r, g, b});
-        float delta = c_max - c_min;
+        float min, max, delta;
+        float _h, _s, _v;
 
-        float hue;
-        float mod = fmod(delta, 6.0f);
-        if      (c_max == r) { hue = 60 * ((g + b) * mod); }
-        else if (c_max == g) { hue = 60 * ((b + r) / delta + 2); }
-        else if (c_max == b) { hue = 60 * ((r + g) / delta + 4); }
-        else { hue = -1; }
+        min = r < g ? r : g;
+        min = min < b ? min : b;
 
-        float saturation;
-        if (c_max == 0) { saturation = 0; }
-        else { saturation = delta / c_max; }
+        max = r > g ? r : g;
+        max = max > b ? max : b;
 
-        value[0] = hue;
-        value[1] = saturation;
-        value[2] = c_max;
+        _v = max;
+        delta = max - min;
+        if (delta < 0.00001f) {
+            _s = 0.0f;
+            _h = 0.0f;
+        }
+        if (max > 0.0f) {
+            _s = delta / max;
+        } else {
+            throw std::runtime_error("Division by zero in rgb conversion");
+        }
+        if (r == max) {
+            _h = (g - b) / delta;
+        } else if (g == max) {
+            _h = 2.0f + (b - r) / delta;
+        } else {
+            _h = 4.0f + (r - g) / delta;
+        }
+        _h *= 60.0f;
+
+        if (_h < 0.0f) {
+            _h += 360;
+        }
+        value[0] = _h;
+        value[1] = _s;
+        value[2] = _v;
         colour_tag = "hsv";
     }
 }
@@ -43,24 +58,36 @@ void Colour::to_rgb() {
     if (colour_tag == "hsv") {
         float h = value[0], s = value[1], v = value[2];
         float _r, _g, _b;
-        float c = v * s;
-        float mod = fmod(h / 60, 2);
-        float x = c * (1 - std::abs(mod - 1 ));
-        float m = v - c;
+        float hh, p, q, t, ff;
+        int i;
 
-        switch((int) (h / 60)) {
-            case 0: _r = c; _g = x; _b = 0; break;
-            case 1: _r = x; _g = c; _b = 0; break;
-            case 2: _r = 0; _g = c; _b = x; break;
-            case 3: _r = 0; _g = x; _b = c; break;
-            case 4: _r = x; _g = 0; _b = c; break;
-            case 5: _r = c; _g = 0; _b = x; break;
-            default: throw "invalid hue";
+        if (s == 0.0) {
+            _r = 0.0f;
+            _g = 0.0f;
+            _b = 0.0f;
+        } else {
+            hh = h;
+            if (hh >= 360.0f) hh = 0.0f;
+            hh /= 60.0f;
+            i = (int)hh;
+            ff = hh - i;
+            p = v * (1.0f - s);
+            q = v * (1.0f - (s * ff));
+            t = v * (1.0f - (s * (1.0f - ff)));
+
+            switch(i) {
+                case 0: _r = v; _g = t; _b = p; break;
+                case 1: _r = q; _g = v; _b = p; break;
+                case 2: _r = p; _g = v; _b = t; break;
+                case 3: _r = p; _g = q; _b = v; break;
+                case 4: _r = t; _g = p; _b = v; break;
+                case 5: default: _r = v; _g = p; _b = q; break;
+            }
+
         }
-
-        value[0] = _r + m;
-        value[1] = _g + m;
-        value[2] = _b + m;
+        value[0] = _r;
+        value[1] = _g;
+        value[2] = _b;
 
         colour_tag = "rgb";
     }
@@ -77,4 +104,60 @@ void Colour::print() {
                    "  V:" << value[2] << "\n";
 
     } else {std::cout << colour_tag << "\n";}
+}
+
+ColourProgram::ColourProgram(const Application& application_instance)
+        : app(application_instance) {}
+
+ColourProgram::ColourProgram(const Application& application_instance, std::initializer_list<Colour*> colours)
+        : can_add(false), app(application_instance), current_colour_set(colours) {}
+
+ColourProgram::ColourProgram(const Application& application_instance, std::initializer_list<Colour*> colours, const char* callback)
+        : app(application_instance) {
+    add_colour_set(callback, colours);
+}
+
+
+void ColourProgram::add_colour_set(const char* callback, std::initializer_list<Colour*> colour_list) {
+    if (can_add) {
+        colour_map[callback] = colour_list;
+    } else {
+        throw std::runtime_error("[ERROR] Can not add to a Colour Program initialized without a callback");
+    }
+}
+
+ColourProgram::ColourArray ColourProgram::get_colour_set(const char* callback) {
+    try {
+        return colour_map.at(callback);
+    } catch (const std::out_of_range& oor) {
+        throw std::runtime_error("[ERROR] Invalid callback");
+    }
+}
+
+ColourProgram::ColourArray ColourProgram::get_current_colour_set() {
+    if (!current_colour_set.empty()) {
+        return current_colour_set;
+    } else {
+        throw std::runtime_error("[ERROR] No current colour set");
+    }
+}
+
+void ColourProgram::cycle_colours(float increment, float interval) {
+    // calculate if colours need to be updated
+    current_colour_interval -= app.get_frame_time_delta();
+
+    if (current_colour_interval <= 0) {
+        // Circles through hsv values (takes and returns normalized rgb)
+        for (auto& c : current_colour_set) {
+            c->to_hsv();
+            float h_value = c->value[0];
+            if (h_value + increment <= 360.0f) {
+                c->value[0] += increment;
+            } else {
+                c->value[0] = h_value + increment - 360.0f;
+            }
+            c->to_rgb();
+        }
+        current_colour_interval = interval;
+    }
 }

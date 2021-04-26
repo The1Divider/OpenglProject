@@ -2,20 +2,34 @@
 #include <GLFW/glfw3.h>
 #include <stdexcept>
 #include <iostream>
+
 #include "Application.hpp"
+#include "glError.hpp"
+#include "Colour.hpp"
 
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-Application* current_application = NULL;
+void process_input(GLFWwindow *window) {
+    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+    if(glfwGetKey(window, GLFW_KEY_0) == GLFW_PRESS)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    if(glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+}
 
-Application& Application::get_instance() {
+Application* current_application = nullptr;
+
+
+// Makes object a singleton
+const Application& Application::get_instance() {
     if (current_application) {
         return *current_application;
     } else {
-        throw std::runtime_error("No current application");
+        throw std::runtime_error("[ERROR] No current application");
     }
 }
 
@@ -28,7 +42,7 @@ Application::Application()
 
     // initialize the GLFW library
     if (!glfwInit()) {
-        throw std::runtime_error("Failed to init GLFW");
+        throw std::runtime_error("[ERROR] Failed to init GLFW");
     }
 
 
@@ -43,14 +57,14 @@ Application::Application()
     window = glfwCreateWindow(width, height, title.c_str(), NULL, NULL);
     if (!window) {
         glfwTerminate();
-        throw std::runtime_error("Failed to init window");
+        throw std::runtime_error("[ERROR] Failed to init window");
     }
 
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        throw std::runtime_error("Failed to init GLAD");
+        throw std::runtime_error("[ERROR] Failed to init GLAD");
     }
 
     // Display context
@@ -61,6 +75,7 @@ Application::Application()
 
     glEnable(GL_DEPTH_TEST); // enable depth testing
     glDepthFunc(GL_LESS); // smaller values get rendered as 'closer' object
+    glCheckError(__FILE__, __LINE__);
 }
 
 Application::~Application() = default;
@@ -82,6 +97,7 @@ float Application::get_time() const {
 }
 
 void Application::run() {
+    glCheckError(__FILE__, __LINE__);
     state = stateRun;
 
     glfwMakeContextCurrent(window);
@@ -89,6 +105,7 @@ void Application::run() {
     time = glfwGetTime();
 
     while(state == stateRun) {
+        process_input(window);
         // get new (delta)time
         float t = glfwGetTime();
         deltaTime = t - time;
@@ -138,4 +155,21 @@ bool Application::window_dimension_changed() const {
     return dimension_changed;
 }
 
+void Application::set_colour_program_instance() const {
+    if (!colour_program) {
+        colour_program.reset(new ColourProgram(get_instance()));
+    }
+}
+
+void Application::set_colour_program_instance(std::initializer_list<Colour*> colours) const {
+    if (!colour_program) {
+        colour_program.reset(new ColourProgram(get_instance(), colours));
+    }
+}
+
+void Application::set_colour_program_instance(std::initializer_list<Colour*> colours, const char* callback) const {
+    if (!colour_program) {
+        colour_program.reset(new ColourProgram(get_instance(), colours, callback));
+    }
+}
 

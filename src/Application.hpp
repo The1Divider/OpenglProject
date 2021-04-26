@@ -9,12 +9,15 @@
 #include <GLFW/glfw3.h>
 #include <ctime>
 #include <string>
+#include <memory>
+
+#include "Colour.hpp"
 
 class Application {
     public:
         Application();
 
-        static Application& get_instance();
+        static const Application& get_instance();
 
         // returns window id
         GLFWwindow* get_window() const;
@@ -33,6 +36,11 @@ class Application {
         float get_window_ratio() const;
         bool window_dimension_changed() const;
 
+        std::unique_ptr<ColourProgram*> colour_program;
+
+        void set_colour_program_instance() const;
+        void set_colour_program_instance(std::initializer_list<Colour*> colours) const;
+        void set_colour_program_instance(std::initializer_list<Colour*> colours, const char* callback) const;
     private:
 
         // control state
