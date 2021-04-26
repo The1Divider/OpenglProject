@@ -18,8 +18,12 @@ add_executable(main
         src/Shader.hpp
         src/App.cpp
         src/App.hpp
-
-        lib/glad/src/glad.c src/glError.cpp src/glError.hpp src/main.cpp)
+        lib/glad/src/glad.c
+        src/glError.cpp
+        src/glError.hpp
+        src/main.cpp
+        src/Quad.cpp
+        src/Quad.hpp)
 
 
 
